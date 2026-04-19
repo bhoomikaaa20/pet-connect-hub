@@ -1,4 +1,7 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/lib/auth";
+import { Header } from "@/components/Header";
 
 import appCss from "../styles.css?url";
 
@@ -12,12 +15,12 @@ function NotFoundComponent() {
           The page you're looking for doesn't exist or has been moved.
         </p>
         <div className="mt-6">
-          <Link
-            to="/"
+          <a
+            href="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Go home
-          </Link>
+          </a>
         </div>
       </div>
     </div>
@@ -29,21 +32,13 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "PawFinder — Lost Pet Reporting & Recovery" },
+      { name: "description", content: "Centralised platform to manage your pets, report them lost, and reunite them with the community's help." },
+      { name: "author", content: "PawFinder" },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -65,5 +60,18 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <AuthProvider>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <footer className="border-t border-border/60 py-8 text-center text-sm text-muted-foreground">
+          <p>Made with <span className="text-primary">♥</span> for pets and the people who love them.</p>
+        </footer>
+      </div>
+      <Toaster richColors position="top-center" />
+    </AuthProvider>
+  );
 }
