@@ -112,7 +112,7 @@ function Admin() {
   const updateStatus = async (id: string, status: "safe" | "lost" | "found") => {
     try {
       await axios.put(
-        `http://localhost:5000/api/admin/pet/${id}`,
+        `http://localhost:5000/api/pets/${id}/status`,
         { status },
         { withCredentials: true }
       );
