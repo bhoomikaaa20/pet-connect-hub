@@ -22,9 +22,14 @@ const petSchema = new Schema(
             enum: ["safe", "lost", "found"],
             default: "safe",
         },
+        phone: {
+            type: String,
+            required: true,
+        },
         image_url: String,
         user_id: String,
-        lost_at: Date,
+        lost_at: Date
+
     },
     { timestamps: true }
 );

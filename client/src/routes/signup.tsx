@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import axios from "axios";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Sign up — PawFinder" }] }),
@@ -44,7 +45,7 @@ function SignUp() {
 
     try {
       await axios.post(
-        "http://localhost:8080/api/auth/signup",
+        "http://localhost:5000/api/auth/signup",
         parsed.data,
         { withCredentials: true }
       );

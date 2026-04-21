@@ -17,19 +17,25 @@ const statusStyles: Record<string, string> = {
   safe: "bg-gray-300 text-black",
 };
 
-export function PetCard({ pet, onClick }: { pet: Pet; onClick?: () => void }) {
+export function PetCard({
+  pet,
+  onClick,
+}: {
+  pet: Pet;
+  onClick?: () => void;
+}) {
   return (
     <Card
       onClick={onClick}
-      className={`group overflow-hidden hover:shadow-lg ${onClick ? "cursor-pointer" : ""
-        }`}
+      className="group cursor-pointer overflow-hidden rounded-xl shadow-sm hover:shadow-lg transition duration-300"
     >
-      <div className="aspect-[4/3] bg-muted overflow-hidden">
+      {/* IMAGE */}
+      <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
         {pet.image_url ? (
           <img
-            src={`http://localhost:8080${pet.image_url}`}
+            src={`http://localhost:5000${pet.image_url}`}
             alt={pet.name}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full items-center justify-center">
@@ -38,14 +44,15 @@ export function PetCard({ pet, onClick }: { pet: Pet; onClick?: () => void }) {
         )}
       </div>
 
+      {/* CONTENT */}
       <CardContent className="p-4">
-        <div className="flex justify-between">
-          <div>
-            <h3 className="font-bold">{pet.name}</h3>
-            <p className="text-sm text-gray-500">{pet.breed}</p>
+        <div className="flex justify-between items-start gap-2">
+          <div className="min-w-0">
+            <h3 className="font-semibold truncate">{pet.name}</h3>
+            <p className="text-xs text-gray-500 truncate">{pet.breed}</p>
           </div>
 
-          <Badge className={statusStyles[pet.status]}>
+          <Badge className={`${statusStyles[pet.status]} capitalize`}>
             {pet.status}
           </Badge>
         </div>
@@ -53,7 +60,7 @@ export function PetCard({ pet, onClick }: { pet: Pet; onClick?: () => void }) {
         {pet.location && (
           <div className="flex items-center text-xs mt-2 text-gray-500">
             <MapPin className="h-3 w-3 mr-1" />
-            {pet.location}
+            <span className="truncate">{pet.location}</span>
           </div>
         )}
       </CardContent>

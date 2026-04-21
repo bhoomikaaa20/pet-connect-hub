@@ -67,8 +67,8 @@ function Admin() {
   const load = useCallback(async () => {
     try {
       const [petRes, userRes] = await Promise.all([
-        axios.get("http://localhost:8080/api/admin/pets", { withCredentials: true }),
-        axios.get("http://localhost:8080/api/admin/users", { withCredentials: true }),
+        axios.get("http://localhost:5000/api/admin/pets", { withCredentials: true }),
+        axios.get("http://localhost:5000/api/admin/users", { withCredentials: true }),
       ]);
 
       setPets(petRes.data);
@@ -89,13 +89,13 @@ function Admin() {
     try {
       if (confirm.type === "pet") {
         await axios.delete(
-          `http://localhost:8080/api/admin/pet/${confirm.id}`,
+          `http://localhost:5000/api/admin/pet/${confirm.id}`,
           { withCredentials: true }
         );
         toast.success("Pet deleted");
       } else {
         await axios.delete(
-          `http://localhost:8080/api/admin/user/${confirm.id}`,
+          `http://localhost:5000/api/admin/user/${confirm.id}`,
           { withCredentials: true }
         );
         toast.success("User deleted");
@@ -112,7 +112,7 @@ function Admin() {
   const updateStatus = async (id: string, status: "safe" | "lost" | "found") => {
     try {
       await axios.put(
-        `http://localhost:8080/api/admin/pet/${id}`,
+        `http://localhost:5000/api/admin/pet/${id}`,
         { status },
         { withCredentials: true }
       );

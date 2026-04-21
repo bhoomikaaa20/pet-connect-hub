@@ -7,13 +7,12 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -31,25 +30,19 @@ type Pet = {
   location?: string;
   status: "safe" | "lost" | "found";
   image_url?: string;
-  lost_at?: string | null;
+  phone?: string;
 };
 
 const schema = z.object({
-  name: z.string().trim().min(1, "Name required").max(60),
-  breed: z.string().trim().min(1, "Breed required").max(60),
-  description: z.string().trim().max(500).optional(),
-  location: z.string().trim().max(120).optional(),
+  name: z.string().min(1),
+  breed: z.string().min(1),
+  description: z.string().optional(),
+  location: z.string().optional(),
   status: z.enum(["safe", "lost", "found"]),
+  phone: z.string().min(10),
 });
 
-interface Props {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  pet?: Pet | null;
-  onSaved: () => void;
-}
-
-export function PetFormDialog({ open, onOpenChange, pet, onSaved }: Props) {
+export function PetFormDialog({ open, onOpenChange, pet, onSaved }: any) {
   const { user } = useAuth();
 
   const [name, setName] = useState("");
@@ -57,22 +50,33 @@ export function PetFormDialog({ open, onOpenChange, pet, onSaved }: Props) {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState<"safe" | "lost" | "found">("safe");
+  const [phone, setPhone] = useState("");
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setName(pet?.name ?? "");
-      setBreed(pet?.breed ?? "");
-      setDescription(pet?.description ?? "");
-      setLocation(pet?.location ?? "");
-      setStatus(pet?.status ?? "safe");
-      setImagePreview(pet?.image_url ? `http://localhost:8080${pet.image_url}` : null);
+      setName(pet?.name || "");
+      setBreed(pet?.breed || "");
+      setDescription(pet?.description || "");
+      setLocation(pet?.location || "");
+      setStatus(pet?.status || "safe");
+      setPhone(pet?.phone || "");
+
+      setImagePreview(
+        pet?.image_url
+          ? `http://localhost:5000${pet.image_url}`
+          : null
+      );
+
       setImageFile(null);
     }
   }, [open, pet]);
 
+  // ✅ FILE HANDLER
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -86,10 +90,19 @@ export function PetFormDialog({ open, onOpenChange, pet, onSaved }: Props) {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  // ✅ SUBMIT (FIXED)
   const submit = async () => {
     if (!user) return;
 
-    const parsed = schema.safeParse({ name, breed, description, location, status });
+    const parsed = schema.safeParse({
+      name,
+      breed,
+      description,
+      location,
+      status,
+      phone,
+    });
+
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
@@ -100,74 +113,85 @@ export function PetFormDialog({ open, onOpenChange, pet, onSaved }: Props) {
     try {
       const formData = new FormData();
 
-      formData.append("name", parsed.data.name);
-      formData.append("breed", parsed.data.breed);
-      formData.append("description", parsed.data.description || "");
-      formData.append("location", parsed.data.location || "");
-      formData.append("status", parsed.data.status);
+      formData.append("name", name);
+      formData.append("breed", breed);
+      formData.append("description", description || "");
+      formData.append("location", location || "");
+      formData.append("status", status);
+      formData.append("phone", phone);
 
+      // 🔥 IMPORTANT
       if (imageFile) {
-        formData.append("image", imageFile);
+        formData.append("image", imageFile); // MUST MATCH multer field
       }
 
-      if (pet) {
-        await fetch(`http://localhost:8080/api/pets/${pet._id}`, {
-          method: "PUT",
-          body: formData,
-          credentials: "include",
-        });
-        toast.success("Pet updated");
-      } else {
-        await fetch(`http://localhost:8080/api/pets`, {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        });
-        toast.success("Pet added");
-      }
+      const url = pet
+        ? `http://localhost:5000/api/pets/${pet._id}`
+        : `http://localhost:5000/api/pets`;
+
+      const method = pet ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error();
+
+      toast.success(pet ? "Updated" : "Added");
 
       onSaved();
       onOpenChange(false);
-    } catch {
-      toast.error("Failed to save");
-    } finally {
-      setSaving(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Upload failed");
     }
+
+    setSaving(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col border-0 shadow-2xl rounded-2xl">
+
         <DialogHeader>
-          <DialogTitle>{pet ? "Edit pet" : "Add a pet"}</DialogTitle>
+          <DialogTitle>{pet ? "Edit Pet" : "Add Pet"}</DialogTitle>
           <DialogDescription>
-            Keep your pet's profile updated.
+            Enter pet details
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div>
-            <Label className="mb-2 block">Photo</Label>
-            <label className="flex aspect-[4/3] cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed">
-              {imagePreview ? (
-                <img src={imagePreview} className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <ImagePlus className="h-8 w-8" />
-                  <span>Upload</span>
-                </div>
-              )}
-              <input type="file" className="hidden" onChange={handleFile} />
-            </label>
-          </div>
+        {/* 🔥 SCROLL AREA */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+
+          {/* IMAGE */}
+          <label className="flex aspect-[4/3] cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed">
+            {imagePreview ? (
+              <img src={imagePreview} className="w-full h-full object-cover" />
+            ) : (
+              <ImagePlus className="h-8 w-8" />
+            )}
+            <input type="file" hidden onChange={handleFile} />
+          </label>
 
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
           <Input value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="Breed" />
           <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location" />
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+
+          {/* PHONE */}
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Phone Number"
+          />
+
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
 
           <Select value={status} onValueChange={(v: any) => setStatus(v)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="safe">Safe</SelectItem>
               <SelectItem value="lost">Lost</SelectItem>
@@ -179,9 +203,10 @@ export function PetFormDialog({ open, onOpenChange, pet, onSaved }: Props) {
         <DialogFooter>
           <Button onClick={submit} disabled={saving}>
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {pet ? "Update" : "Add"}
+            Save
           </Button>
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   );

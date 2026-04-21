@@ -6,6 +6,7 @@ interface AuthCtx {
   loading: boolean;
   isAdmin: boolean;
   signOut: () => Promise<void>;
+  fetchUser: () => Promise<void>; // ✅ ADD THIS
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
@@ -15,23 +16,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // ✅ NEW FUNCTION (IMPORTANT)
+  const fetchUser = async () => {
+    try {
+      const res = await axios.get(
+        "http://localhost:5000/api/auth/verify",
+        { withCredentials: true }
+      );
+
+      setUser(res.data.user);
+      setIsAdmin(res.data.user?.role === "admin");
+    } catch {
+      setUser(null);
+      setIsAdmin(false);
+    }
+  };
+
+  // ✅ INITIAL LOAD
   useEffect(() => {
-    axios
-      .get("http://localhost:8080/api/auth/verify", { withCredentials: true })
-      .then((res) => {
-        setUser(res.data.user);
-        setIsAdmin(res.data.user?.role === "admin");
-        setLoading(false);
-      })
-      .catch(() => {
-        setUser(null);
-        setIsAdmin(false);
-        setLoading(false);
-      });
+    fetchUser().finally(() => setLoading(false));
   }, []);
 
   const signOut = async () => {
-    await axios.get("http://localhost:8080/api/auth/logout", {
+    await axios.get("http://localhost:5000/api/auth/logout", {
       withCredentials: true,
     });
     setUser(null);
@@ -39,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, signOut, fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

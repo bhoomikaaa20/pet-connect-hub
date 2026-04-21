@@ -1,6 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { Edit, MoreVertical, PawPrint, Plus, Search as SearchIcon, Trash2 } from "lucide-react";
+import { Edit, MoreVertical, Plus, Trash2, PawPrint } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import { useAuth } from "@/lib/auth";
@@ -16,9 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import {
   Select,
@@ -32,6 +31,10 @@ type Pet = {
   name: string;
   breed: string;
   status: "safe" | "lost" | "found";
+  location?: string;
+  image_url?: string;
+  description?: string;
+  phone?: string;
 };
 
 export const Route = createFileRoute("/dashboard")({
@@ -50,20 +53,28 @@ function Dashboard() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // 🔐 redirect if not logged in
   useEffect(() => {
-    if (!authLoading && !user) navigate({ to: "/login" });
+    if (!authLoading && !user) {
+      navigate({ to: "/login" });
+    }
   }, [user]);
 
+  // 🔄 load pets
   const load = useCallback(async () => {
     setLoading(true);
 
     try {
       const res = await axios.get(
-        "http://localhost:8080/api/pets/my",
-        { withCredentials: true }
+        "http://localhost:5000/api/pets/my",
+        {
+          withCredentials: true,
+          headers: { "Cache-Control": "no-cache" },
+        }
       );
 
-      setPets(res.data);
+      // 🔥 IMPORTANT FIX
+      setPets(res.data.pets || res.data);
     } catch {
       toast.error("Failed to load pets");
     }
@@ -75,10 +86,11 @@ function Dashboard() {
     if (user) load();
   }, [user]);
 
+  // 🗑 delete
   const handleDelete = async () => {
     try {
       await axios.delete(
-        `http://localhost:8080/api/pets/${deleteId}`,
+        `http://localhost:5000/api/pets/${deleteId}`,
         { withCredentials: true }
       );
 
@@ -91,83 +103,150 @@ function Dashboard() {
     setDeleteId(null);
   };
 
+  // 🔁 status update
   const updateStatus = async (id: string, status: string) => {
     await axios.put(
-      `http://localhost:8080/api/pets/${id}/status`,
+      `http://localhost:5000/api/pets/${id}/status`,
       { status },
       { withCredentials: true }
     );
-
     load();
   };
 
+  // 🔍 filter
   const filtered = pets.filter((p) => {
     if (statusFilter !== "all" && p.status !== statusFilter) return false;
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
+
+    if (
+      search &&
+      !p.name?.toLowerCase().includes(search.toLowerCase())
+    ) return false;
+
     return true;
   });
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">My Pets</h1>
+    <div className="max-w-6xl mx-auto p-6 space-y-6">
 
-      <Button onClick={() => setFormOpen(true)}>
-        <Plus /> Add
-      </Button>
+      {/* HEADER */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">My Pets</h1>
 
-      <Input
-        placeholder="Search..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        <Button onClick={() => setFormOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" /> Add Pet
+        </Button>
+      </div>
+
+      {/* FILTERS */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Input
+          placeholder="Search pets..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+
+        <Select onValueChange={setStatusFilter}>
+          <SelectTrigger>Status</SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="lost">Lost</SelectItem>
+            <SelectItem value="safe">Safe</SelectItem>
+            <SelectItem value="found">Found</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* CONTENT */}
+      {loading ? (
+        <p className="text-center">Loading...</p>
+      ) : filtered.length === 0 ? (
+        <div className="text-center space-y-2">
+          <PawPrint className="mx-auto h-10 w-10 opacity-40" />
+          <p className="text-gray-500">No pets found</p>
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((pet) => (
+            <div key={pet._id} className="relative">
+
+              <PetCard pet={pet} />
+
+              {/* ACTION MENU */}
+              <div className="absolute top-2 right-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="secondary">
+                      <MoreVertical />
+                    </Button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditPet(pet);
+                        setFormOpen(true);
+                      }}
+                    >
+                      <Edit className="mr-2 h-4 w-4" /> Edit
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={() => updateStatus(pet._id, "lost")}
+                    >
+                      Mark Lost
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={() => updateStatus(pet._id, "found")}
+                    >
+                      Mark Found
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      onClick={() => setDeleteId(pet._id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* FORM */}
+      <PetFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        pet={editPet}
+        onSaved={load}
       />
 
-      <Select onValueChange={setStatusFilter}>
-        <SelectTrigger>Status</SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All</SelectItem>
-          <SelectItem value="lost">Lost</SelectItem>
-          <SelectItem value="safe">Safe</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {filtered.map((pet) => (
-        <div key={pet._id}>
-          <PetCard pet={pet} />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button><MoreVertical /></Button>
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setEditPet(pet)}>
-                <Edit /> Edit
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => updateStatus(pet._id, "lost")}>
-                Mark Lost
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => updateStatus(pet._id, "found")}>
-                Mark Found
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => setDeleteId(pet._id)}>
-                <Trash2 /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      ))}
-
-      <PetFormDialog open={formOpen} onOpenChange={setFormOpen} pet={editPet} onSaved={load} />
-
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      {/* DELETE CONFIRM */}
+      <AlertDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+      >
         <AlertDialogContent>
-          <Button onClick={handleDelete}>Confirm Delete</Button>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <div className="space-y-4">
+            <p>Are you sure you want to delete this pet?</p>
+
+            <div className="flex justify-end gap-2">
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
