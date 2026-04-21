@@ -1,48 +1,59 @@
 import { MapPin, PawPrint } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Database } from "@/integrations/supabase/types";
 
-type Pet = Database["public"]["Tables"]["pets"]["Row"];
+type Pet = {
+  _id: string;
+  name: string;
+  breed: string;
+  status: "safe" | "lost" | "found";
+  location?: string;
+  image_url?: string;
+};
 
 const statusStyles: Record<string, string> = {
-  lost: "bg-lost text-lost-foreground",
-  found: "bg-found text-found-foreground",
-  safe: "bg-secondary text-secondary-foreground",
+  lost: "bg-red-500 text-white",
+  found: "bg-green-500 text-white",
+  safe: "bg-gray-300 text-black",
 };
 
 export function PetCard({ pet, onClick }: { pet: Pet; onClick?: () => void }) {
   return (
     <Card
       onClick={onClick}
-      className={`group overflow-hidden border-border/60 bg-card transition-all hover:-translate-y-1 hover:shadow-warm ${onClick ? "cursor-pointer" : ""}`}
+      className={`group overflow-hidden hover:shadow-lg ${onClick ? "cursor-pointer" : ""
+        }`}
     >
-      <div className="aspect-[4/3] overflow-hidden bg-muted">
+      <div className="aspect-[4/3] bg-muted overflow-hidden">
         {pet.image_url ? (
           <img
-            src={pet.image_url}
+            src={`http://localhost:8080${pet.image_url}`}
             alt={pet.name}
-            loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="h-full w-full object-cover"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-warm">
-            <PawPrint className="h-14 w-14 text-primary/40" />
+          <div className="flex h-full items-center justify-center">
+            <PawPrint className="h-10 w-10 opacity-40" />
           </div>
         )}
       </div>
+
       <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="truncate font-display text-lg font-semibold">{pet.name}</h3>
-            <p className="truncate text-sm text-muted-foreground">{pet.breed}</p>
+        <div className="flex justify-between">
+          <div>
+            <h3 className="font-bold">{pet.name}</h3>
+            <p className="text-sm text-gray-500">{pet.breed}</p>
           </div>
-          <Badge className={`${statusStyles[pet.status]} capitalize border-0`}>{pet.status}</Badge>
+
+          <Badge className={statusStyles[pet.status]}>
+            {pet.status}
+          </Badge>
         </div>
+
         {pet.location && (
-          <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3" />
-            <span className="truncate">{pet.location}</span>
+          <div className="flex items-center text-xs mt-2 text-gray-500">
+            <MapPin className="h-3 w-3 mr-1" />
+            {pet.location}
           </div>
         )}
       </CardContent>
