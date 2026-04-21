@@ -13,7 +13,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function Header() {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, signOut, loading } = useAuth(); // ✅ added loading
   const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -34,11 +34,11 @@ export function Header() {
   useEffect(() => {
     if (!user) return;
 
-    fetchNotifications(); // initial load
+    fetchNotifications();
 
     const interval = setInterval(() => {
-      fetchNotifications(); // 🔥 auto refresh
-    }, 5000); // every 5 sec
+      fetchNotifications();
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [user]);
@@ -67,6 +67,13 @@ export function Header() {
     navigate({ to: "/" });
   };
 
+  // ✅ WAIT FOR AUTH (prevents glitch)
+  if (loading) {
+    return (
+      <header className="border-b bg-white h-16 animate-pulse" />
+    );
+  }
+
   const navLinks = (
     <>
       <Link to="/" className="text-sm font-medium">Home</Link>
@@ -91,13 +98,15 @@ export function Header() {
           <PawPrint /> PawFinder
         </Link>
 
-        {/* NAV */}
-        <nav className="hidden md:flex gap-6">{navLinks}</nav>
+        {/* DESKTOP NAV */}
+        <nav className="hidden md:flex gap-6">
+          {navLinks}
+        </nav>
 
         {/* RIGHT SIDE */}
         <div className="flex gap-3 items-center">
 
-          {user && (
+          {user ? (
             <>
               {/* 🔔 NOTIFICATIONS */}
               <DropdownMenu>
@@ -123,8 +132,7 @@ export function Header() {
                       <DropdownMenuItem
                         key={n._id}
                         onClick={() => markAsRead(n._id)}
-                        className={`text-sm ${!n.read ? "font-semibold" : ""
-                          }`}
+                        className={`text-sm ${!n.read ? "font-semibold" : ""}`}
                       >
                         {n.message}
                       </DropdownMenuItem>
@@ -143,7 +151,7 @@ export function Header() {
 
                 <DropdownMenuContent>
                   {isAdmin && (
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate({ to: "/admin" })}>
                       <Shield className="mr-2 h-4 w-4" />
                       Admin
                     </DropdownMenuItem>
@@ -156,10 +164,10 @@ export function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* MOBILE MENU */}
+              {/* 📱 MOBILE MENU */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost">
+                  <Button variant="ghost" className="md:hidden">
                     <Menu />
                   </Button>
                 </SheetTrigger>
@@ -172,9 +180,7 @@ export function Header() {
                 </SheetContent>
               </Sheet>
             </>
-          )}
-
-          {!user && (
+          ) : (
             <>
               <Button asChild variant="ghost">
                 <Link to="/login">Login</Link>
@@ -185,6 +191,7 @@ export function Header() {
               </Button>
             </>
           )}
+
         </div>
       </div>
     </header>

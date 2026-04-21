@@ -16,10 +16,26 @@ export const createPet = async (req: AuthRequest, res: Response) => {
             status,
             phone,
             image_url: req.file ? `/uploads/${req.file.filename}` : "",
-            user_id: req.user?.id, // ✅ FIXED
+            user_id: req.user?.id,
+            lost_at: status === "lost" ? new Date() : null,
         });
 
         await pet.save();
+
+        // 🔥 ADD THIS BLOCK
+        if (status === "lost") {
+            await Notification.create({
+                user_id: req.user?.id,
+                message: `${pet.name} is reported LOST 🐾`,
+            });
+        }
+
+        if (status === "found") {
+            await Notification.create({
+                user_id: req.user?.id,
+                message: `${pet.name} is marked FOUND 🎉`,
+            });
+        }
 
         res.status(201).json(pet);
     } catch (err) {
