@@ -1,35 +1,36 @@
 import express from "express";
-import multer from "multer";
-import path from "path";
-import { verifyUser } from "../middleware/auth";
-import { getLostPets } from "../controllers/petController";
-
 import {
     createPet,
-    updatePet,
-    deletePet,
     getMyPets,
+    deletePet,
     updateStatus,
-    getAllPets,
+    getLostPets,
+    updatePet,
 } from "../controllers/petController";
+import { verifyUser } from "../middleware/auth";
+import multer from "multer";
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-    destination: "uploads/",
-    filename: (_, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    },
-});
+// upload config
+const upload = multer({ dest: "uploads/" });
 
-const upload = multer({ storage });
-
+// ✅ CREATE
 router.post("/", verifyUser, upload.single("image"), createPet);
-router.put("/:id", verifyUser, upload.single("image"), updatePet);
-router.delete("/:id", verifyUser, deletePet);
+
+// ✅ GET MY PETS
 router.get("/my", verifyUser, getMyPets);
+
+// ✅ DELETE
+router.delete("/:id", verifyUser, deletePet);
+
+// ✅ UPDATE STATUS (🔥 THIS CAUSED ERROR)
 router.put("/:id/status", verifyUser, updateStatus);
-router.get("/", getAllPets);
+
+// ✅ UPDATE PET
+router.put("/:id", verifyUser, upload.single("image"), updatePet);
+
+// ✅ LOST PETS
 router.get("/lost", getLostPets);
 
 export default router;
