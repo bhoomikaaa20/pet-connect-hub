@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Loader2, PawPrint } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,27 +33,29 @@ function SignUp() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const parsed = schema.safeParse({ name, email, password });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0].message);
       return;
     }
+
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { name: parsed.data.name },
-      },
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+
+    try {
+      await axios.post(
+        "http://localhost:8080/api/auth/signup",
+        parsed.data,
+        { withCredentials: true }
+      );
+
+      toast.success("Account created!");
+      navigate({ to: "/dashboard" });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Signup failed");
     }
-    toast.success("Account created!");
-    navigate({ to: "/dashboard" });
+
+    setLoading(false);
   };
 
   return (
