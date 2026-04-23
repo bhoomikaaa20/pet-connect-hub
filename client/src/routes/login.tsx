@@ -58,6 +58,9 @@ function Login() {
       await fetchUser();
 
       toast.success("Welcome back!");
+
+      // 🔥 FORCE NAVIGATION
+      navigate({ to: "/" });
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Login failed");
     }
